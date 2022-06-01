@@ -6,7 +6,7 @@ on:
       - 'v*'
 jobs:
   mac-os-build:
-    name: Build Mac OS binaries
+    name: Build Mac OS
     runs-on: macos-latest
     steps:
       - name: Git Checkout
@@ -19,17 +19,13 @@ jobs:
         with:
           go-version: '~1.18.1'
 
-      - name: Build
-        run: |
-          go build -o "./" ./...
-
       - name: Test
         run: |
-          go test ./...
+          go test
 
 
   windows-build:
-    name: Build Windows binaries
+    name: Build Windows
     runs-on: windows-latest
     steps:
       - name: Git Checkout
@@ -42,16 +38,12 @@ jobs:
         with:
           go-version: '~1.18.1'
 
-      - name: Build
-        run: |
-          go build -o "./" ./...
-
       - name: Test
         run: |
-          go test ./...
+          go test 
 
   linux-build:
-    name: Build Linux Binaries
+    name: Build Linux
     runs-on: ubuntu-latest
     steps:
       - name: Git Checkout
@@ -64,13 +56,9 @@ jobs:
         with:
           go-version: '~1.18.1'
 
-      - name: Build
-        run: |
-          go build -o "./" ./...
-
       - name: Test
         run: |
-          go test ./...
+          go test
 
   release:
     name: Create Release

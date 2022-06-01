@@ -25,14 +25,14 @@ import (
 func Test_HttpResolver(t *testing.T) {
 	req := require.New(t)
 
-	port := "4856"
-	urlBase := "http://127.0.0.1:" + port
+	port := "1280"
+	urlBase := "http://localhost:" + port
 	urlValidPath := "/.well-known/jwks.json"
 	urlWrongContentTypePath := "/invalid/content-type"
 	urlEmptyContentPath := "/invalid/no-content"
 	urlBadContentPath := "/invalid/mangled-json"
 
-	server := &http.Server{Addr: ":" + port, Handler: http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+	server := &http.Server{Addr: "0.0.0.0:" + port, Handler: http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case urlValidPath:
 			rw.Header().Set("content-type", "application/json")
