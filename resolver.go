@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -57,7 +58,9 @@ func (j *HttpResolver) Get(url string) (*Response, []byte, error) {
 		}
 	}
 
-	if resp.Header.Get("content-type") != "application/json" {
+	contentType := strings.Split(resp.Header.Get("content-type"), ";")
+
+	if contentType[0] != "application/json" {
 		return nil, nil, &HttpResolverError{
 			Resp:  resp,
 			error: errors.New(ErrorInvalidContentTypeMsg),
