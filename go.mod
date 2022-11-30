@@ -1,6 +1,6 @@
 module github.com/openziti/jwks
 
-go 1.18
+go 1.19
 
 require (
 	github.com/Jeffail/gabs/v2 v2.6.1
