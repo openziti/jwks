@@ -1,21 +1,23 @@
 /*
-	Copyright NetFoundry, Inc.
+Copyright NetFoundry, Inc.
 
-	Licensed under the Apache License, Version 2.0 (the "License");
-	you may not use this file except in compliance with the License.
-	You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-	https://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
-	Unless required by applicable law or agreed to in writing, software
-	distributed under the License is distributed on an "AS IS" BASIS,
-	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-	See the License for the specific language governing permissions and
-	limitations under the License.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
 package jwks
 
 import (
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"encoding/json"
 	"github.com/Jeffail/gabs/v2"
 	"github.com/stretchr/testify/require"
@@ -64,7 +66,7 @@ var testJwksRfc7517Examples = `
     },
     {
       "kty": "RSA",
-      "n": "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx 4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMs tn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2 QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbI SD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqb w0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw",
+      "n": "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw",
       "e": "AQAB",
       "alg": "RS256",
       "kid": "2011-04-29"
@@ -178,6 +180,37 @@ func Test_Response(t *testing.T) {
 			req.Equal(jwksContainer.Path("keys.2.dq").Data(), response.Keys[2].Dq)
 			req.Equal(jwksContainer.Path("keys.2.qi").Data(), response.Keys[2].Qi)
 
+			t.Run("can create rsa.PublicKey from JWK without x5c", func(t *testing.T) {
+				req := require.New(t)
+
+				pubKey, err := KeyToPublicKey(response.Keys[1])
+
+				req.NoError(err)
+				req.NotNil(pubKey)
+
+				rsaPubKey := pubKey.(*rsa.PublicKey)
+				req.NotNil(rsaPubKey)
+
+				req.Equal("26634547600177008912365441464036882611104634136430581696102639463075266436216946316053845642300166320042915031924501272705275043130211783228252369194856949397782880847235143381529207382262647906987655738647387007320361149854766523417293323739185308113373529512728932838100141612048712597178695720651344295450174895369923383396704334331627261565907266749863744707920606364678231639106403854977302183719246256958550651555767664134467706614553219592981545363271425781391262006405169505726523023628770285432062044391310047445749287563161668548354322560223509946990827691654627968182167826397015368836435965354956581554819", rsaPubKey.N.String())
+				req.Equal(65537, rsaPubKey.E)
+			})
+
+			t.Run("can create ecdsa.PublicKey from JWK without x5c", func(t *testing.T) {
+				req := require.New(t)
+
+				pubKey, err := KeyToPublicKey(response.Keys[0])
+
+				req.NoError(err)
+				req.NotNil(pubKey)
+
+				ecPubKey := pubKey.(*ecdsa.PublicKey)
+				req.NotNil(ecPubKey)
+
+				req.Equal("P-256", ecPubKey.Curve.Params().Name)
+				req.Equal("101451294974385619524093058399734017814808930032421185206609461750712400090915", ecPubKey.Y.String())
+				req.Equal("21994169848703329112137818087919262246467304847122821377551355163096090930238", ecPubKey.X.String())
+			})
 		})
 	})
+
 }
