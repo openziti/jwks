@@ -131,7 +131,7 @@ func NewKey(keyId string, cert *x509.Certificate, chain []*x509.Certificate) (*K
 		ret.N = base64.RawURLEncoding.EncodeToString(rsaPubKey.N.Bytes())
 
 		buf := new(bytes.Buffer)
-		err := binary.Write(buf, binary.BigEndian, ret.E)
+		err := binary.Write(buf, binary.BigEndian, int32(rsaPubKey.E))
 
 		if err != nil {
 			return nil, fmt.Errorf("error encoding RSA exponent: %s", err)

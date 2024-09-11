@@ -17,11 +17,17 @@ package jwks
 
 import (
 	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
 	"github.com/Jeffail/gabs/v2"
 	"github.com/stretchr/testify/require"
+	"math/big"
 	"testing"
+	"time"
 )
 
 var testPublicJwksAuth0 = `{
@@ -213,4 +219,121 @@ func Test_Response(t *testing.T) {
 		})
 	})
 
+}
+
+func Test_NewKey(t *testing.T) {
+	t.Run("can create a key from an RSA certificate", func(t *testing.T) {
+		req := require.New(t)
+
+		rsaCert, _, err := newRsaCert()
+		req.NoError(err)
+		req.NotNil(rsaCert)
+
+		key, err := NewKey("testRsaKid", rsaCert, nil)
+		req.NoError(err)
+		req.NotNil(key)
+
+		endKey, err := KeyToPublicKey(*key)
+		req.NoError(err)
+
+		origPubKey, ok := rsaCert.PublicKey.(*rsa.PublicKey)
+		req.True(ok)
+		req.NotNil(origPubKey)
+
+		req.True(origPubKey.Equal(endKey), "expected the original public key and re-constituted key to be equal")
+
+	})
+
+	t.Run("can create a key from an EC certificate", func(t *testing.T) {
+		req := require.New(t)
+
+		ecCert, _, err := newEcCert()
+		req.NoError(err)
+		req.NotNil(ecCert)
+
+		key, err := NewKey("testEcKid", ecCert, nil)
+		req.NoError(err)
+		req.NotNil(key)
+
+		endKey, err := KeyToPublicKey(*key)
+		req.NoError(err)
+
+		origPubKey, ok := ecCert.PublicKey.(*ecdsa.PublicKey)
+		req.True(ok)
+		req.NotNil(origPubKey)
+
+		req.True(origPubKey.Equal(endKey), "expected the original public key and re-constituted key to be equal")
+	})
+}
+
+func newRsaCert() (*x509.Certificate, *rsa.PrivateKey, error) {
+	// Generate RSA private key
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Certificate template
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			CommonName:   "TEST RSA Certificate",
+			Organization: []string{"TEST"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+
+	// Create a self-signed certificate
+	certBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Parse the certificate bytes into a x509.Certificate
+	cert, err := x509.ParseCertificate(certBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cert, privateKey, nil
+}
+
+func newEcCert() (*x509.Certificate, *ecdsa.PrivateKey, error) {
+	// Generate EC private key
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Certificate template
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			CommonName:   "TEST EC Certificate",
+			Organization: []string{"TEST"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+
+	// Create a self-signed certificate
+	certBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Parse the certificate bytes into a x509.Certificate
+	cert, err := x509.ParseCertificate(certBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cert, privateKey, nil
 }
