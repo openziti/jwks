@@ -121,7 +121,9 @@ func NewKey(keyId string, cert *x509.Certificate, chain []*x509.Certificate) (*K
 		ret.X509Chain = make([]string, 0, len(chain))
 
 		for _, cert := range chain {
-			derStr := base64.RawURLEncoding.EncodeToString(cert.Raw)
+			// x5c is the only attribute with padding according to
+			// RFC 7517 Section-4.7 "x5c" (X.509 Certificate Chain) Parameter
+			derStr := base64.StdEncoding.EncodeToString(cert.Raw)
 			ret.X509Chain = append(ret.X509Chain, derStr)
 		}
 	}

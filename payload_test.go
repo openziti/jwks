@@ -22,6 +22,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/json"
 	"github.com/Jeffail/gabs/v2"
 	"github.com/stretchr/testify/require"
@@ -229,7 +230,7 @@ func Test_NewKey(t *testing.T) {
 		req.NoError(err)
 		req.NotNil(rsaCert)
 
-		key, err := NewKey("testRsaKid", rsaCert, nil)
+		key, err := NewKey("testRsaKid", rsaCert, []*x509.Certificate{rsaCert})
 		req.NoError(err)
 		req.NotNil(key)
 
@@ -242,6 +243,21 @@ func Test_NewKey(t *testing.T) {
 
 		req.True(origPubKey.Equal(endKey), "expected the original public key and re-constituted key to be equal")
 
+		t.Run("rsa x5c chains uses base64 standard encoding", func(t *testing.T) {
+			req := require.New(t)
+
+			for _, encodedCert := range key.X509Chain {
+				dst := make([]byte, len(encodedCert))
+				n, err := base64.StdEncoding.Decode(dst, []byte(encodedCert))
+				req.NoError(err)
+
+				dst = dst[:n]
+
+				cert, err := x509.ParseCertificate(dst)
+				req.NoError(err)
+				req.NotNil(cert)
+			}
+		})
 	})
 
 	t.Run("can create a key from an EC certificate", func(t *testing.T) {
@@ -251,7 +267,7 @@ func Test_NewKey(t *testing.T) {
 		req.NoError(err)
 		req.NotNil(ecCert)
 
-		key, err := NewKey("testEcKid", ecCert, nil)
+		key, err := NewKey("testEcKid", ecCert, []*x509.Certificate{ecCert})
 		req.NoError(err)
 		req.NotNil(key)
 
@@ -263,7 +279,24 @@ func Test_NewKey(t *testing.T) {
 		req.NotNil(origPubKey)
 
 		req.True(origPubKey.Equal(endKey), "expected the original public key and re-constituted key to be equal")
+
+		t.Run("ec x5c chains uses base64 standard encoding", func(t *testing.T) {
+			req := require.New(t)
+
+			for _, encodedCert := range key.X509Chain {
+				dst := make([]byte, len(encodedCert))
+				n, err := base64.StdEncoding.Decode(dst, []byte(encodedCert))
+				req.NoError(err)
+
+				dst = dst[:n]
+
+				cert, err := x509.ParseCertificate(dst)
+				req.NoError(err)
+				req.NotNil(cert)
+			}
+		})
 	})
+
 }
 
 func newRsaCert() (*x509.Certificate, *rsa.PrivateKey, error) {
